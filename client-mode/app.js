@@ -2,13 +2,15 @@
 const http = require('http');
 const alidns = require('./alidns.js');
 const config = require('./config.json');
+const fs = require('fs');
 
 const simpleGetPubIpUrl = [
-    'api.ipify.org',
-    'canhazip.com',
-    'ident.me',
-    'whatismyip.akamai.com',
-    'myip.dnsomatic.com']
+    {option: {host: 'api.ipify.org', method: "GET"}, parser: body => body.trim()},
+    {option: {host: 'canhazip.com', method: "GET"}, parser: body => body.trim()},
+    {option: {host: 'ident.me', method: "GET"}, parser: body => body.trim()},
+    {option: {host: 'whatismyip.akamai.com', method: "GET"}, parser: body => body.trim()},
+    {option: {host: 'myip.dnsomatic.com', method: "GET"}, parser: body => body.trim()}
+]
 
 const taobaoApi = {
     option: {
@@ -54,13 +56,7 @@ function getPubIpGeneric(option, parser, callback) {
 function pubIpApi() {
     let apiList = [];
     for (let i = 0; i < simpleGetPubIpUrl.length; ++i) {
-        apiList[i] = {
-            option: {
-                host: simpleGetPubIpUrl[i],
-                method: "GET"
-            },
-            parser: body => body.trim()
-        };
+        apiList[i] = simpleGetPubIpUrl[i];
     }
     apiList[simpleGetPubIpUrl.length] = taobaoApi;
     return apiList;
@@ -92,6 +88,11 @@ function main() {
             console.log(new Date() + ': [noip]');
             return;
         }
+        let latest_ip = fs.readFileSync("./latest.ip", {encoding: "utf-8"});
+        if (pubIp === latest_ip) {
+            console.log(`${new Date()}: ip unchange`);
+            return;
+        }
         let hostnames = config.hostnames;
         for (let hostname of hostnames) {
             let target = {
@@ -102,6 +103,7 @@ function main() {
                 console.log(new Date() + ': [' + msg + '] ' + JSON.stringify(target));
             });
         }
+        fs.writeFileSync("./latest.ip", pubIp, {encoding: "utf-8"});
     });
 }
 
