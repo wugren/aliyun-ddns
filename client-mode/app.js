@@ -88,10 +88,12 @@ function main() {
             console.log(new Date() + ': [noip]');
             return;
         }
-        let latest_ip = fs.readFileSync("./latest.ip", {encoding: "utf-8"});
-        if (pubIp === latest_ip) {
-            console.log(`${new Date()}: ip unchange`);
-            return;
+        if (fs.existsSync("./latest.ip")) {
+            let latest_ip = fs.readFileSync("./latest.ip", {encoding: "utf-8"});
+            if (pubIp === latest_ip) {
+                console.log(`${new Date()}: ip ${pubIp} unchange`);
+                return;
+            }
         }
         let hostnames = config.hostnames;
         for (let hostname of hostnames) {
