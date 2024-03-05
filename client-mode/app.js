@@ -82,31 +82,40 @@ function getPubIp(callback) {
     getPubIpRecur(callback, 0);
 }
 
-function main() {
-    getPubIp(pubIp => {
-        if (!pubIp) {
-            console.log(new Date() + ': [noip]');
-            return;
-        }
-        if (fs.existsSync("./latest.ip")) {
-            let latest_ip = fs.readFileSync("./latest.ip", {encoding: "utf-8"});
-            if (pubIp === latest_ip) {
-                console.log(`${new Date()}: ip ${pubIp} unchange`);
-                return;
-            }
-        }
-        let hostnames = config.hostnames;
-        for (let hostname of hostnames) {
-            let target = {
-                hostname: hostname,
-                ip: pubIp
-            };
-            alidns.updateRecord(target, (msg) => {
-                console.log(new Date() + ': [' + msg + '] ' + JSON.stringify(target));
-            });
-        }
-        fs.writeFileSync("./latest.ip", pubIp, {encoding: "utf-8"});
+function sleep(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
     });
 }
 
-main();
+async function main() {
+    while (true) {
+        getPubIp(pubIp => {
+            if (!pubIp) {
+                console.log(new Date() + ': [noip]');
+                return;
+            }
+            if (fs.existsSync("./latest.ip")) {
+                let latest_ip = fs.readFileSync("./latest.ip", {encoding: "utf-8"});
+                if (pubIp === latest_ip) {
+                    console.log(`${new Date()}: ip ${pubIp} unchange`);
+                    return;
+                }
+            }
+            let hostnames = config.hostnames;
+            for (let hostname of hostnames) {
+                let target = {
+                    hostname: hostname,
+                    ip: pubIp
+                };
+                alidns.updateRecord(target, (msg) => {
+                    console.log(new Date() + ': [' + msg + '] ' + JSON.stringify(target));
+                });
+            }
+            fs.writeFileSync("./latest.ip", pubIp, {encoding: "utf-8"});
+        });
+        await sleep(1000 * 60 * 10);
+    }
+}
+
+main().then();
